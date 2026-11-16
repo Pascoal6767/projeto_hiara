@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEXUS RAM — Laboratório de Memória</title>
+<style>
+:root{--cyan:#58e7ff;--blue:#5c8dff;--violet:#a879ff;--ink:#07111e;--panel:rgba(8,19,35,.88);--line:rgba(104,221,255,.28);--muted:#a9bfd2}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050b14;color:#eaf7ff;font-family:Inter,Segoe UI,Arial,sans-serif}
+#game{position:fixed;inset:0}canvas{display:block}
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 48%,rgba(1,5,13,.54) 100%);z-index:2}
+#hud{position:fixed;inset:0;z-index:5;pointer-events:none}
+.topbar{position:absolute;top:16px;left:18px;right:18px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.brand{padding:10px 14px;border:1px solid var(--line);background:rgba(4,13,26,.72);backdrop-filter:blur(12px);border-radius:12px;box-shadow:0 0 28px #2acfff12}
+.brand b{letter-spacing:.22em;color:var(--cyan);font-size:13px}.brand small{display:block;color:#b9d1e4;font-size:10px;letter-spacing:.16em;margin-top:4px}
+.stats{display:flex;gap:8px}.stat{min-width:92px;text-align:center;padding:9px 12px;border:1px solid var(--line);background:rgba(4,13,26,.72);border-radius:10px}.stat span{display:block;color:var(--muted);font-size:9px;letter-spacing:.13em}.stat strong{font-size:17px;color:#fff}
+#objective{position:absolute;top:91px;left:18px;max-width:330px;padding:12px 15px;border-left:3px solid var(--cyan);background:linear-gradient(90deg,rgba(5,19,34,.88),rgba(5,19,34,.35));text-shadow:0 2px 10px #000}
+#objective small{color:var(--cyan);font-size:9px;letter-spacing:.18em}#objective b{display:block;margin-top:4px;font-size:14px}#objective p{margin:5px 0 0;color:#bdd0df;font-size:11px;line-height:1.45}
+#crosshair{position:absolute;left:50%;top:50%;width:18px;height:18px;transform:translate(-50%,-50%);opacity:.8}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:#bdf7ff;box-shadow:0 0 8px var(--cyan)}#crosshair:before{width:2px;height:18px;left:8px}#crosshair:after{height:2px;width:18px;top:8px}
+#hint{position:absolute;bottom:25px;left:50%;transform:translateX(-50%);padding:10px 16px;background:rgba(3,12,23,.82);border:1px solid var(--line);border-radius:30px;color:#d9f8ff;font-size:12px;white-space:nowrap}
+#hint kbd{background:#17344a;border:1px solid #37637b;border-radius:4px;padding:2px 6px;color:#fff;margin:0 2px}
+#progressWrap{position:absolute;bottom:20px;left:18px;width:210px;color:#c3d9e9;font-size:10px;letter-spacing:.1em}
+#progress{height:5px;background:#172b3b;border-radius:10px;margin-top:7px;overflow:hidden}#progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--violet));box-shadow:0 0 12px var(--cyan);transition:width .35s}
+#toast{position:absolute;top:24%;left:50%;transform:translate(-50%,-10px);padding:10px 18px;background:#08253a;border:1px solid #4bdfff;border-radius:8px;opacity:0;transition:.25s;font-size:13px;box-shadow:0 0 25px #35dfff30}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#panelLayer{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;background:rgba(1,5,12,.72);backdrop-filter:blur(9px);pointer-events:auto;padding:18px}
+#panelLayer.open{display:flex}
+.panel{width:min(680px,96vw);max-height:88vh;overflow:auto;background:linear-gradient(145deg,rgba(10,29,49,.98),rgba(7,13,29,.98));border:1px solid rgba(89,220,255,.5);border-radius:18px;box-shadow:0 20px 90px #000b,0 0 35px #25cfff18;padding:26px}
+.panelHead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.eyebrow{font-size:10px;letter-spacing:.2em;color:var(--cyan)}h1{font-size:clamp(25px,4vw,38px);margin:8px 0 10px;letter-spacing:.02em}.panel p{color:#c2d5e4;line-height:1.65;font-size:14px}.panel h2{font-size:19px;margin:12px 0;color:#effaff}.close{border:1px solid #41657a;background:#10283b;color:white;border-radius:8px;padding:8px 12px;cursor:pointer}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}.btn{border:1px solid #4edfff;background:linear-gradient(100deg,#087e9d,#3156a7);color:white;border-radius:9px;padding:11px 17px;font-weight:700;cursor:pointer;letter-spacing:.03em}.btn.secondary{background:#12283b;border-color:#34566c}.btn:disabled{opacity:.35;cursor:not-allowed}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}.infoCard{padding:13px;border:1px solid #25485f;background:#0b1e31;border-radius:10px}.infoCard b{display:block;color:#76eaff;margin-bottom:5px;font-size:13px}.infoCard span{color:#c0d1de;font-size:12px;line-height:1.5}
+.quizOpt{display:block;width:100%;text-align:left;margin:8px 0;padding:12px 14px;border:1px solid #31536a;background:#0b2034;color:#eaf8ff;border-radius:9px;cursor:pointer}.quizOpt:hover{border-color:var(--cyan);background:#10314a}.quizOpt.correct{border-color:#54e6a8;background:#0d382f}.quizOpt.wrong{border-color:#ff8d8d;background:#3a1b27}
+#startScreen{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 45%,#143a56 0,#071525 48%,#030812 100%);padding:20px}
+.startCard{width:min(760px,96vw);padding:clamp(22px,5vw,48px);border:1px solid #4adcfb70;border-radius:22px;background:linear-gradient(140deg,#071a2deF,#081226f5);box-shadow:0 0 100px #20bde522}
+.logo{font-size:12px;letter-spacing:.36em;color:var(--cyan);font-weight:800}.startCard h1{font-size:clamp(38px,7vw,68px);line-height:.98;margin:16px 0 12px}.startCard h1 em{font-style:normal;color:var(--cyan);text-shadow:0 0 25px #36cfff70}.startCard p{max-width:600px;color:#bed0df;line-height:1.65}.startMeta{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}.pill{border:1px solid #31556e;background:#0b2034;color:#bdefff;padding:7px 10px;border-radius:30px;font-size:11px}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:18px 0}.control{padding:10px;border:1px solid #1d3c53;border-radius:8px;color:#adc5d7;font-size:12px}.control b{color:#fff}
+#mobileControls{display:none;position:fixed;z-index:6;bottom:78px;right:18px;pointer-events:auto;gap:7px}
+#mobileControls button{width:46px;height:46px;border-radius:12px;border:1px solid #59dfff80;background:#082239cc;color:white;font-size:18px}
+@media(max-width:650px){.stats .stat{min-width:62px;padding:7px}.stat span{font-size:8px}.stat strong{font-size:14px}#objective{top:78px;max-width:230px}.cards{grid-template-columns:1fr}.brand{padding:8px}.brand b{font-size:11px}#hint{font-size:10px;bottom:15px}.controls{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="game"></div><div id="vignette"></div>
+<div id="hud">
+ <div class="topbar">
+  <div class="brand"><b>NEXUS / RAM</b><small>MEMORY LABORATORY · BUILD 1.0</small></div>
+  <div class="stats">
+   <div class="stat"><span>TEMPO</span><strong id="clock">00:00</strong></div>
+   <div class="stat"><span>DADOS</span><strong id="score">0 / 6</strong></div>
+   <div class="stat"><span>NÍVEL</span><strong id="level">01</strong></div>
+  </div>
+ </div>
+ <div id="objective"><small>OBJETIVO ATUAL</small><b id="objectiveTitle">Explora o laboratório</b><p id="objectiveText">Aproxima-te de uma estação e prime E para aprender.</p></div>
+ <div id="crosshair"></div><div id="toast"></div>
+ <div id="progressWrap">PROGRESSO DA MISSÃO <span id="pct">0%</span><div id="progress"><i id="progressBar"></i></div></div>
+ <div id="hint"><kbd>W A S D</kbd> mover · <kbd>RATO</kbd> olhar · <kbd>E</kbd> interagir · <kbd>ESC</kbd> libertar rato</div>
+</div>
+<div id="mobileControls"><button data-move="forward">▲</button><button data-move="left">◀</button><button data-move="back">▼</button><button data-move="right">▶</button></div>
+<div id="panelLayer"><div class="panel" id="panel"></div></div>
+<div id="startScreen">
+ <div class="startCard">
+  <div class="logo">NEXUS SYSTEMS · INTERACTIVE LEARNING</div>
+  <h1>ENTRA NO<br><em>LABORATÓRIO RAM</em></h1>
+  <p>Uma experiência 3D em primeira pessoa para descobrires como funciona a memória RAM. Explora uma sala tecnológica, examina um módulo de memória, ativa seis estações de aprendizagem e termina com um desafio de conhecimentos.</p>
+  <div class="startMeta"><span class="pill">3D em tempo real</span><span class="pill">6 estações educativas</span><span class="pill">Missão final</span><span class="pill">Som opcional</span></div>
+  <div class="controls">
+   <div class="control"><b>W A S D</b> — andar pela sala</div><div class="control"><b>Rato</b> — olhar à volta</div>
+   <div class="control"><b>E</b> — abrir estação próxima</div><div class="control"><b>ESC</b> — libertar o cursor</div>
+   <div class="control"><b>Shift</b> — andar mais depressa</div><div class="control"><b>F</b> — ligar/desligar som</div>
+  </div>
+  <p><b>Objetivo:</b> recolhe os seis dados de RAM e conclui o questionário. A experiência foi pensada para durar cerca de 5–8 minutos se explorares e leres os conteúdos com atenção.</p>
+  <div class="actions"><button class="btn" id="startBtn">INICIAR EXPERIÊNCIA</button><button class="btn secondary" id="soundBtn">SOM: LIGADO</button></div>
+ </div>
+</div>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+const mount=document.getElementById('game');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x06111f);scene.fog=new THREE.Fog(0x06111f,15,37);
+const camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,.1,100);camera.position.set(0,1.7,8);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;mount.appendChild(renderer.domElement);
+const controls=new PointerLockControls(camera,renderer.domElement);
+scene.add(new THREE.HemisphereLight(0x9ddfff,0x101629,1.6));
+const keyLight=new THREE.PointLight(0x32cfff,42,22);keyLight.position.set(0,5,0);scene.add(keyLight);
+const violetLight=new THREE.PointLight(0x8455ff,28,18);violetLight.position.set(-7,3,1);scene.add(violetLight);
+const warmLight=new THREE.PointLight(0x38ffa9,18,15);warmLight.position.set(7,3,-3);scene.add(warmLight);
+const mat=(color,metalness=0,roughness=.55,emissive=0x000000)=>new THREE.MeshStandardMaterial({color,metalness,roughness,emissive,emissiveIntensity:.45});
+const floorMat=mat(0x101f31,.55,.36),wallMat=mat(0x0b1929,.35,.6),dark=mat(0x07101b,.65,.35),cyan=mat(0x39dfff,.4,.25,0x087b9b),violet=mat(0x9668ff,.35,.3,0x3b147e),green=mat(0x43efb1,.3,.25,0x0a6948),gold=mat(0xffc96b,.4,.3,0x69400a);
+function box(w,h,d,material,x,y,z,cast=true){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=cast;m.receiveShadow=true;scene.add(m);return m}
+function glowLine(a,b,color=0x35dfff,r=.018){const v=new THREE.Vector3(...a),w=new THREE.Vector3(...b),g=new THREE.Mesh(new THREE.CylinderGeometry(r,r,v.distanceTo(w),8),new THREE.MeshBasicMaterial({color}));g.position.copy(v).add(w).multiplyScalar(.5);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),w.sub(v).normalize());scene.add(g)}
+// Architecture
+box(26,.35,24,floorMat,0,-.2,0);box(26,.3,24,dark,0,-.43,0);
+box(26,7,.35,wallMat,0,3.25,-12);box(26,7,.35,wallMat,0,3.25,12);box(.35,7,24,wallMat,-13,3.25,0);box(.35,7,24,wallMat,13,3.25,0);
+box(26,.25,24,dark,0,6.8,0);
+for(let x=-11;x<=11;x+=2){glowLine([x,.0,-11.7],[x,.0,11.7],0x153b55,.012)}
+for(let z=-10;z<=10;z+=2){glowLine([-12.7,.01,z],[12.7,.01,z],0x153b55,.012)}
+// Ceiling panels and luminous strips
+for(let x=-9;x<=9;x+=6){box(3,.08,1.4,mat(0x16334b,.3,.4),x,6.55,-1);box(2.5,.025,.06,cyan,x,6.48,-1)}
+for(let z of [-8,0,8]){glowLine([-12.7,6.45,z],[12.7,6.45,z],0x286b88,.025)}
+// rear title sign
+box(9,2.3,.25,dark,0,4.55,-11.65);glowLine([-4.2,5.75,-11.48],[4.2,5.75,-11.48],0x4fe8ff,.025);
+function makeText(text,x,y,z,size=0.3,color='#8beeff'){const c=document.createElement('canvas');c.width=1024;c.height=256;const ctx=c.getContext('2d');ctx.clearRect(0,0,1024,256);ctx.font='700 78px Arial';ctx.fillStyle=color;ctx.textAlign='center';ctx.shadowColor=color;ctx.shadowBlur=18;ctx.fillText(text,512,150);const t=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false}));s.position.set(x,y,z);s.scale.set(size*5,size*1.25,1);scene.add(s);return s}
+makeText('NEXUS  /  RAM',0,4.7,-11.45,.6,'#68eaff');makeText('MEMORY RESEARCH FACILITY',0,4.05,-11.44,.22,'#b9d5eb');
+// Decorative pillars, side consoles
+for(let x of [-11.8,11.8])for(let z of [-8,-2,4,9]){box(.55,4,.55,mat(0x132a40,.65,.3),x,2,z);box(.68,.08,.68,cyan,x,4.05,z);box(.68,.08,.68,violet,x,.08,z)}
+// central RAM exhibit plinth
+box(3.8,.35,3.1,mat(0x142c42,.7,.26),0,.1,0);box(3.1,.12,2.5,cyan,0,.32,0);
+const pedestal=box(1.5,1.25,1.5,mat(0x1b3148,.75,.22),0,1.05,0);box(1.7,.08,1.7,violet,0,1.68,0);
+function createRAM(){const group=new THREE.Group();const pcb=new THREE.Mesh(new THREE.BoxGeometry(2.25,.13,.62),mat(0x08754f,.55,.3));group.add(pcb);
+for(let i=0;i<8;i++){let chip=new THREE.Mesh(new THREE.BoxGeometry(.19,.22,.4),mat(0x111b28,.75,.2));chip.position.set(-.83+i*.235,.15,0);group.add(chip);let top=new THREE.Mesh(new THREE.BoxGeometry(.15,.018,.34),gold);top.position.set(-.83+i*.235,.265,0);group.add(top)}
+for(let i=0;i<18;i++){let pin=new THREE.Mesh(new THREE.BoxGeometry(.07,.035,.09),gold);pin.position.set(-.86+i*.101,-.08,.0);group.add(pin)}
+for(let x of [-1.08,1.08]){let hole=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,.02,16),gold);hole.rotation.x=Math.PI/2;hole.position.set(x,.02,.315);group.add(hole)}
+let label=makeText('DDR  ·  RAM',0,0,0,.2,'#ffffff');label.position.set(0,.48,0);label.scale.set(1.6,.28,1);group.add(label);return group}
+const ram=createRAM();ram.position.set(0,2.65,0);scene.add(ram);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(1.6,.025,8,80),new THREE.MeshBasicMaterial({color:0x4ce6ff}));ring.rotation.x=Math.PI/2;ring.position.y=1.95;scene.add(ring);
+// stations positioned around the room, facing inward
+const topics=[
+{title:'01 · O QUE É A RAM?',short:'Definição',pos:[-8,0,-7],color:0x39dfff,body:'A RAM (Random Access Memory), ou memória de acesso aleatório, é uma memória temporária e muito rápida que o computador utiliza enquanto está ligado. Guarda dados e instruções de que o processador precisa naquele momento. Ao contrário de um disco ou SSD, o seu conteúdo não é normalmente preservado quando o computador é desligado.',facts:[['Memória temporária','Mantém informação disponível durante a utilização.'],['Acesso rápido','Permite consultar e alterar dados rapidamente.'],['Volátil','Perde o conteúdo guardado quando deixa de receber energia.']]},
+{title:'02 · PARA QUE SERVE?',short:'Função',pos:[8,0,-7],color:0x8b71ff,body:'A RAM funciona como uma área de trabalho. Quando abres um programa, parte dos dados necessários é colocada na RAM para que o sistema consiga aceder-lhes rapidamente. Se tiveres várias aplicações abertas, todas podem precisar de espaço de memória. Se a capacidade for insuficiente, o computador pode recorrer ao armazenamento, que é geralmente mais lento.',facts:[['Aplicações abertas','Os dados de trabalho ficam disponíveis para uso imediato.'],['Multitarefa','Mais capacidade pode ajudar a manter vários programas ativos.'],['Não é armazenamento permanente','Os ficheiros devem ser guardados num SSD ou disco.']]},
+{title:'03 · CAPACIDADE (GB)',short:'Capacidade',pos:[-8,0,1],color:0x42e9a9,body:'A capacidade da RAM mede-se normalmente em gigabytes (GB). Indica a quantidade de dados que pode estar disponível ao mesmo tempo. Mais capacidade pode ajudar em tarefas exigentes e na utilização simultânea de aplicações, mas não significa automaticamente que o computador será sempre mais rápido: também contam o processador, o tipo de memória e o software.',facts:[['8 GB','Pode ser suficiente para utilização básica, dependendo do sistema.'],['16 GB','É uma capacidade comum em muitos computadores atuais.'],['32 GB ou mais','Pode ser útil em tarefas pesadas, criação de conteúdos e projetos grandes.']]},
+{title:'04 · VELOCIDADE (MT/s)',short:'Velocidade',pos:[8,0,1],color:0xffc96b,body:'A velocidade de transferência da RAM é indicada atualmente em MT/s (milhões de transferências por segundo). Valores mais elevados podem permitir transferir dados mais depressa, mas o desempenho real depende também da latência, do controlador de memória, da motherboard e do processador. A frequência anunciada não é o único fator importante.',facts:[['MT/s','Mede milhões de transferências por segundo.'],['Latência','Representa o atraso entre um pedido e a resposta da memória.'],['Compatibilidade','O sistema pode limitar a velocidade efetivamente utilizada.']]},
+{title:'05 · GERAÇÕES DDR',short:'DDR',pos:[-8,0,8],color:0xff79d4,body:'DDR significa Double Data Rate. Ao longo do tempo surgiram várias gerações, como DDR3, DDR4 e DDR5. As gerações mais recentes melhoram aspetos como a largura de banda e a eficiência energética. Não são normalmente intercambiáveis: o encaixe físico e os requisitos elétricos variam, por isso é essencial confirmar a compatibilidade antes de escolher memória.',facts:[['DDR3','Geração anterior, ainda presente em equipamentos antigos.'],['DDR4','Geração amplamente utilizada em muitos computadores.'],['DDR5','Geração mais recente, com maior potencial de largura de banda.']]},
+{title:'06 · RAM vs. SSD',short:'Comparação',pos:[8,0,8],color:0x70aaff,body:'RAM e SSD são ambos importantes, mas têm funções diferentes. A RAM é uma memória de trabalho rápida e volátil, utilizada enquanto as aplicações estão em execução. O SSD é armazenamento não volátil: guarda o sistema operativo, programas e ficheiros mesmo depois de desligar o computador. Um não substitui o outro.',facts:[['RAM','Temporária, rápida e usada durante a execução.'],['SSD','Permanente, guarda ficheiros e programas.'],['Trabalham em conjunto','O SSD carrega os dados; a RAM mantém disponíveis os dados em uso.']]}
+];
+const stationMeshes=[];
+function station(i,t){const [x,_,z]=t.pos;const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+const base=new THREE.Mesh(new THREE.CylinderGeometry(.85,.95,.24,32),mat(0x152e45,.65,.28));base.position.y=.12;g.add(base);
+const col=new THREE.Mesh(new THREE.CylinderGeometry(.12,.18,1.5,16),mat(0x213d56,.7,.25));col.position.y=.95;g.add(col);
+const screen=new THREE.Mesh(new THREE.BoxGeometry(2.65,1.65,.13),dark);screen.position.set(0,2.15,0);g.add(screen);
+const frame=new THREE.Mesh(new THREE.BoxGeometry(2.78,1.78,.08),new THREE.MeshStandardMaterial({color:t.color,metalness:.5,roughness:.25,emissive:t.color,emissiveIntensity:.5}));frame.position.set(0,2.15,-.07);g.add(frame);
+const inner=new THREE.Mesh(new THREE.BoxGeometry(2.55,1.55,.06),mat(0x0b1b2b,.3,.3));inner.position.set(0,2.15,.02);g.add(inner);
+const orb=new THREE.Mesh(new THREE.IcosahedronGeometry(.34,1),new THREE.MeshStandardMaterial({color:t.color,emissive:t.color,emissiveIntensity:.8,metalness:.25,roughness:.2}));orb.position.set(0,3.25,0);g.add(orb);
+const beam=new THREE.Mesh(new THREE.CylinderGeometry(.01,.01,1.3,8),new THREE.MeshBasicMaterial({color:t.color,transparent:true,opacity:.45}));beam.position.y=2.9;g.add(beam);
+const spr=makeText(t.title,0,0,0,.25,'#d9f9ff');spr.position.set(0,2.2,.11);spr.scale.set(2.25,.52,1);g.add(spr);
+const label=makeText('PRIME E PARA ACEDER',0,0,0,.14,'#7deaff');label.position.set(0,.55,0);label.scale.set(1.7,.3,1);g.add(label);
+const light=new THREE.PointLight(t.color,8,6);light.position.set(0,2.7,0);g.add(light);
+stationMeshes.push({group:g,orb,topic:t,index:i,done:false});
+}
+topics.forEach((t,i)=>station(i,t));
+// floating data motes
+const moteGeo=new THREE.SphereGeometry(.035,8,8);for(let i=0;i<90;i++){const m=new THREE.Mesh(moteGeo,new THREE.MeshBasicMaterial({color:i%3===0?0x9b79ff:0x42dfff,transparent:true,opacity:.5}));m.position.set((Math.random()-.5)*23,Math.random()*5.8-0.1,(Math.random()-.5)*21);scene.add(m)}
+// interaction
+const raycaster=new THREE.Raycaster();const keys={};let active=null,started=false,elapsed=0,soundOn=true,audio=null,completed=new Set(),quizDone=false,quizIndex=0,quizCorrect=0;
+const $=id=>document.getElementById(id);
+function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),1900)}
+function beep(freq=600,dur=.08){if(!soundOn)return;try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=freq;o.type='sine';g.gain.value=.035;o.connect(g);g.connect(audio.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+dur);o.stop(audio.currentTime+dur)}catch(e){}}
+function updateProgress(){const n=completed.size;const p=Math.round((n/7)*100);$('score').textContent=n+' / 6';$('progressBar').style.width=p+'%';$('pct').textContent=p+'%';$('level').textContent=String(Math.min(7,n+1)).padStart(2,'0');if(n<6){$('objectiveTitle').textContent='Ativa as estações de RAM';$('objectiveText').textContent=`Dados recolhidos: ${n} de 6. Procura os ecrãs luminosos espalhados pelo laboratório.`}else{$('objectiveTitle').textContent=quizDone?'Missão concluída':'Questionário final';$('objectiveText').textContent=quizDone?'Excelente trabalho. Já dominaste os conceitos essenciais de RAM.':'Todas as estações concluídas. Regressa ao núcleo central para iniciar o desafio final.'}}
+function showTopic(s){const t=s.topic;completed.add(s.index);s.done=true;updateProgress();beep(780,.12);const facts=t.facts.map(f=>`<div class="infoCard"><b>${f[0]}</b><span>${f[1]}</span></div>`).join('');openPanel(`<div class="panelHead"><div><div class="eyebrow">DADO DE INVESTIGAÇÃO ${String(s.index+1).padStart(2,'0')} / 06</div><h1>${t.title}</h1></div><button class="close" id="closePanel">FECHAR ✕</button></div><p>${t.body}</p><div class="cards">${facts}</div><div class="actions"><button class="btn" id="continueBtn">DADO REGISTADO ✓</button></div>`);$('continueBtn').onclick=closePanel;$('closePanel').onclick=closePanel}
+function openPanel(content){$('panel').innerHTML=content;$('panelLayer').classList.add('open');if(controls.isLocked)controls.unlock()}
+function closePanel(){$('panelLayer').classList.remove('open');beep(430,.06)}
+function openQuiz(){if(completed.size<6){toast('Ainda faltam estações por visitar.');return}if(quizDone){showFinish();return}quizIndex=0;quizCorrect=0;quizQuestion()}
+const questions=[
+{q:'Qual é a principal característica da RAM?',a:['Guarda ficheiros permanentemente','É uma memória temporária e volátil','Substitui o processador'],c:1,why:'A RAM mantém dados de trabalho disponíveis enquanto o computador está ligado.'},
+{q:'O que acontece normalmente aos dados da RAM quando desligas o computador?',a:['São guardados no SSD automaticamente','Passam para a placa gráfica','Perdem-se porque a RAM é volátil'],c:2,why:'A RAM precisa de energia para manter os dados.'},
+{q:'Em que unidade é normalmente indicada a capacidade da RAM?',a:['Gigabytes (GB)','Megapíxeis (MP)','Litros (L)'],c:0,why:'A capacidade é normalmente indicada em GB.'},
+{q:'O que significa MT/s nas especificações de memória?',a:['Milhões de transferências por segundo','Milímetros por segundo','Memória total do sistema'],c:0,why:'MT/s mede milhões de transferências por segundo.'},
+{q:'Qual destas afirmações sobre DDR4 e DDR5 é correta?',a:['São sempre intercambiáveis','São gerações diferentes e exigem compatibilidade','DDR5 é um tipo de SSD'],c:1,why:'As gerações DDR têm diferenças físicas e elétricas.'},
+{q:'Qual é a diferença essencial entre RAM e SSD?',a:['RAM é temporária; SSD guarda dados a longo prazo','SSD é volátil e RAM é permanente','São exatamente a mesma coisa'],c:0,why:'RAM é memória de trabalho; SSD é armazenamento não volátil.'}
+];
+function quizQuestion(){const q=questions[quizIndex];openPanel(`<div class="panelHead"><div><div class="eyebrow">AVALIAÇÃO FINAL · PERGUNTA ${quizIndex+1} / 6</div><h1>Teste de conhecimentos</h1></div><button class="close" id="closePanel">SAIR ✕</button></div><h2>${q.q}</h2><div id="options">${q.a.map((a,i)=>`<button class="quizOpt" data-i="${i}">${String.fromCharCode(65+i)}. ${a}</button>`).join('')}</div><p id="feedback">Escolhe a resposta que consideras correta.</p><div class="actions"><button class="btn" id="nextQ" disabled>${quizIndex===5?'VER RESULTADO':'SEGUINTE'}</button></div>`);$('closePanel').onclick=closePanel;document.querySelectorAll('.quizOpt').forEach(b=>b.onclick=()=>{document.querySelectorAll('.quizOpt').forEach(x=>x.disabled=true);const chosen=+b.dataset.i,ok=chosen===q.c;if(ok){quizCorrect++;b.classList.add('correct');beep(880,.13)}else{b.classList.add('wrong');document.querySelectorAll('.quizOpt')[q.c].classList.add('correct');beep(220,.18)}$('feedback').textContent=(ok?'Correto! ':'Não é essa. ')+q.why;$('nextQ').disabled=false});$('nextQ').onclick=()=>{quizIndex++;if(quizIndex<6)quizQuestion();else{quizDone=true;showFinish()}}}
+function showFinish(){const mins=Math.floor(elapsed/60),secs=Math.floor(elapsed%60);const grade=Math.round(quizCorrect/6*100);openPanel(`<div class="eyebrow">RELATÓRIO DE MISSÃO · NEXUS SYSTEMS</div><h1>MISSÃO CONCLUÍDA</h1><p>Terminaste as seis estações de aprendizagem e o questionário final.</p><div class="cards"><div class="infoCard"><b>Resultado</b><span>${quizCorrect} / 6 respostas corretas (${grade}%)</span></div><div class="infoCard"><b>Tempo de exploração</b><span>${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}</span></div><div class="infoCard"><b>Conhecimentos</b><span>${grade>=80?'Excelente domínio dos conceitos.':grade>=50?'Bom trabalho. Revê as estações para consolidar.':'Continua a explorar e volta a tentar.'}</span></div><div class="infoCard"><b>Dados recolhidos</b><span>6 de 6 módulos de RAM analisados</span></div></div><div class="actions"><button class="btn" id="againBtn">RECOMEÇAR</button><button class="btn secondary" id="backBtn">VOLTAR À SALA</button></div>`);$('againBtn').onclick=()=>location.reload();$('backBtn').onclick=closePanel;updateProgress()}
+function interact(){if(!started||$('panelLayer').classList.contains('open'))return;let nearest=null,dist=2.8;for(const s of stationMeshes){const d=camera.position.distanceTo(s.group.position);if(d<dist){dist=d;nearest=s}}if(nearest){showTopic(nearest);return}if(camera.position.distanceTo(new THREE.Vector3(0,0,0))<3.2){openQuiz();return}toast('Aproxima-te de uma estação luminosa ou do núcleo central.')}
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyE')interact();if(e.code==='KeyF'){soundOn=!soundOn;$('soundBtn').textContent='SOM: '+(soundOn?'LIGADO':'DESLIGADO');toast('Som '+(soundOn?'ligado':'desligado'))}if(e.code==='Escape'&&$('panelLayer').classList.contains('open'))closePanel()});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+renderer.domElement.addEventListener('click',()=>{if(started&&!controls.isLocked&&!$('panelLayer').classList.contains('open'))controls.lock()});
+$('startBtn').onclick=()=>{$('startScreen').style.display='none';started=true;controls.lock();toast('Bem-vindo ao laboratório NEXUS RAM');beep(660,.15)};
+$('soundBtn').onclick=()=>{soundOn=!soundOn;$('soundBtn').textContent='SOM: '+(soundOn?'LIGADO':'DESLIGADO')};
+$('panelLayer').addEventListener('click',e=>{if(e.target===$('panelLayer'))closePanel()});
+// movement with collision boundaries and mobile touch controls
+const velocity=new THREE.Vector3(),direction=new THREE.Vector3();let last=performance.now();
+function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.04);last=now;
+if(started){elapsed+=dt;$('clock').textContent=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(Math.floor(elapsed%60)).padStart(2,'0')}
+for(const s of stationMeshes){s.orb.rotation.y+=dt*.7;s.orb.rotation.x+=dt*.35;s.group.children[0].rotation.y+=dt*.12}
+ram.rotation.y+=dt*.35;ring.rotation.z+=dt*.28;
+if(controls.isLocked&&started&&!$('panelLayer').classList.contains('open')){direction.set(0,0,0);if(keys.KeyW||keys.ArrowUp)direction.z-=1;if(keys.KeyS||keys.ArrowDown)direction.z+=1;if(keys.KeyA||keys.ArrowLeft)direction.x-=1;if(keys.KeyD||keys.ArrowRight)direction.x+=1;direction.normalize();const speed=(keys.ShiftLeft?7.2:4.2)*dt;const old=camera.position.clone();controls.moveForward(-direction.z*speed);controls.moveRight(direction.x*speed);camera.position.x=THREE.MathUtils.clamp(camera.position.x,-11.8,11.8);camera.position.z=THREE.MathUtils.clamp(camera.position.z,-10.8,10.8);camera.position.y=1.7}
+const nearest=stationMeshes.map(s=>({s,d:camera.position.distanceTo(s.group.position)})).sort((a,b)=>a.d-b.d)[0];if(started&&!$('panelLayer').classList.contains('open')){if(nearest&&nearest.d<2.8){$('hint').innerHTML=`<kbd>E</kbd> abrir ${nearest.s.topic.short} · <kbd>W A S D</kbd> mover`}else if(camera.position.length()<3.2){$('hint').innerHTML='<kbd>E</kbd> iniciar questionário final'}else{$('hint').innerHTML='<kbd>W A S D</kbd> mover · <kbd>RATO</kbd> olhar · <kbd>E</kbd> interagir · <kbd>ESC</kbd> libertar rato'}}
+renderer.render(scene,camera)}
+requestAnimationFrame(animate);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+document.querySelectorAll('#mobileControls button').forEach(b=>{b.addEventListener('touchstart',e=>{e.preventDefault();keys[b.dataset.move==='forward'?'KeyW':b.dataset.move==='back'?'KeyS':b.dataset.move==='left'?'KeyA':'KeyD']=true});b.addEventListener('touchend',()=>{Object.keys(keys).forEach(k=>keys[k]=false)})});
+</script>
+</body></html>
